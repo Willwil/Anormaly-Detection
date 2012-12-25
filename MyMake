@@ -1,0 +1,6 @@
+g++ -c globalInclude.cpp
+g++ -c features.cpp
+g++ -c detectAlg.cpp
+g++ -c model.cpp
+g++ -c main.cpp
+#g++ -o AnormalDetection *.o `pkg-config --cflags --libs opencv`
