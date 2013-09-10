@@ -5,45 +5,21 @@
 #include <opencv/highgui.h>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <time.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <dirent.h>
+#include <iostream>
 
 using namespace std;
 using namespace cv;
 
-extern int frameWidth;
-extern int frameHeight;
-const int FeatureRows = 10;
-const int FeatureCols = 10;
 const int MaxStringLength = 500;
+extern int GridRows, GridCols;
+extern int frameWidth, frameHeight;
 
-enum ExtractFunType
-{
-    OPTICAL,
-    SORCIALFORCE,
-    MOTIONHISTOM,
-    MYNEW
-};
-
-enum DataSet
-{
-    UMN,
-    BEHAVE,
-    UCSD_PED1,
-    UCSD_PED2
-};
-
-enum ClusterMethod
-{
-	K_Means,
-	Spectral_Cluster
-};
-
-bool isVideoFormat(string s);                                             
-bool isImageFormat(string s);
-bool directoryAutoSet(string s);
-
+void printUsedTime(time_t startTime);
+void programPause();
+int countWords(const char* filename);
+int countLines(const char* filename);
 
 #endif // GLOBALINCLUDE_H

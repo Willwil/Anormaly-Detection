@@ -1,0 +1,79 @@
+OBJECT= Analysis.o BoolArrayDataIo.o cluster.o excutableAlg.o FastShift.o FeatureExtractor.o featureIO.o featureProcess.o FileProcess.o globalInclude.o hierarchical.o HogFeature.o Kmeans.o MatrixDataIo.o meanshift.o model.o MyHashFuncSet.o outlier.o ParamSetting.o utils.o Visualize.o main.o
+
+
+AnormalyDetection: ${OBJECT}
+	g++_4.6.2 -g -o  AnormalyDetection *.o `pkg-config --libs opencv`
+
+
+main.o: main/main.cpp main/../excutableAlg.h main/../globalInclude.h \
+ main/../DataSet.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` main/main.cpp
+
+Analysis.o: Analysis.cpp Analysis.h globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` Analysis.cpp
+
+BoolArrayDataIo.o: BoolArrayDataIo.cpp BoolArrayDataIo.h DataIo.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` BoolArrayDataIo.cpp
+
+cluster.o: cluster.cpp cluster.h globalInclude.h utils.h NeighborInfo.h ClusterNode.h hierarchical.h Kmeans.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` cluster.cpp
+
+excutableAlg.o: excutableAlg.cpp excutableAlg.h globalInclude.h FeatureExtractor.h ExtractFunType.h HogFeature.h featureProcess.h cluster.h outlier.h utils.h Kmeans.h Analysis.h MatrixDataIo.h DataIo.h BoolArrayDataIo.h Visualize.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` excutableAlg.cpp
+
+FastShift.o: FastShift.cpp FastShift.h globalInclude.h utils.h MatrixDataIo.h DataIo.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` FastShift.cpp
+
+FeatureExtractor.o: FeatureExtractor.cpp FeatureExtractor.h globalInclude.h ExtractFunType.h FileProcess.h MatrixDataIo.h DataIo.h Kmeans.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` FeatureExtractor.cpp
+
+featureIO.o: featureIO.cpp globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` featureIO.cpp
+
+featureProcess.o: featureProcess.cpp featureProcess.h globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` featureProcess.cpp
+
+FileProcess.o: FileProcess.cpp FileProcess.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` FileProcess.cpp
+
+globalInclude.o: globalInclude.cpp globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` globalInclude.cpp
+
+hierarchical.o: hierarchical.cpp hierarchical.h globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` hierarchical.cpp
+
+HogFeature.o: HogFeature.cpp HogFeature.h globalInclude.h ExtractFunType.h FileProcess.h MatrixDataIo.h DataIo.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` HogFeature.cpp
+
+Kmeans.o: Kmeans.cpp Kmeans.h globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` Kmeans.cpp
+
+MatrixDataIo.o: MatrixDataIo.cpp MatrixDataIo.h DataIo.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` MatrixDataIo.cpp
+
+meanshift.o: meanshift.cpp meanshift.h globalInclude.h MeanShiftParam.h HashParam.h utils.h cluster.h ParamSetting.h MyHashFuncSet.h MatrixDataIo.h DataIo.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` meanshift.cpp
+
+model.o: model.cpp model.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` model.cpp
+
+MyHashFuncSet.o: MyHashFuncSet.cpp MyHashFuncSet.h globalInclude.h HashParam.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` MyHashFuncSet.cpp
+
+outlier.o: outlier.cpp outlier.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` outlier.cpp
+
+ParamSetting.o: ParamSetting.cpp ParamSetting.h globalInclude.h HashParam.h MeanShiftParam.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` ParamSetting.cpp
+
+utils.o: utils.cpp utils.h globalInclude.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` utils.cpp
+
+Visualize.o: Visualize.cpp Visualize.h globalInclude.h utils.h
+	g++_4.6.2 -c `pkg-config --cflags opencv` Visualize.cpp
+
+
+
+.PHONY: clean
+clean:
+	rm *.o AnormalyDetection

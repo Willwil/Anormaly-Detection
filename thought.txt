@@ -1,0 +1,58 @@
+1. principle component of examples cost ---> pca
+2. no-zeros vector cost ---> sparse
+3. the mixture topic cost ---> lda
+4. the mixture of gaussian variable ---> gmm
+5. the representation of neighbors ---> knn
+6. the representation of clusters ---> kmeans+knn
+
+
+
+/***********************************************/
+best shift
+//sulotion 1,  four direction cell, left, right, top, down
+Mat D; //l * r
+gridDensity(D);
+Mat C; //l * r
+gridCentroid(C);
+	
+//calulate the attraction force of the four neighbor grid
+f[i] = exp((x_t - c[i, j]).^2/deta)			
+//choose the best direction and external force
+#ifdef one_direction
+  max value
+#else ifdef composite_line
+  max direction
+  the two side difference of attraction force in max direction
+#else 
+  composite all the direction -two side difference
+#endif
+
+//shift the feature vector
+total_force = current_force + external_force
+w1 = current_force/total_force;
+w2 = external_force/total_force
+x_t+1 = x_t * w1 + w2 * c[i,j];
+
+
+
+
+//solution 2, random select direction
+partition into grid, the grid length is the radius to be neighbors.
+projection the grid point to the projection line which is through the shift point
+W_i*X + B_i = 0
+get all the line values as having disscused .
+#ifdef one_direction
+  max value
+#else ifdef composite_line
+  max direction
+  the two side difference of attraction force in max direction
+#else 
+  composite all the direction -two side difference
+#endif
+
+//shift the feature vector
+total_force = current_force + external_force
+w1 = current_force/total_force;
+w2 = external_force/total_force
+x_t+1 = x_t * w1 + w2 * c[i,j];
+

@@ -1,13 +1,16 @@
-#ifndef _EXCUTABLE_ALG
-#define _EXCUTABLE_ALG
+#ifndef _LIAN_EXCUTABLE_ALG
+#define _LIAN_EXCUTABLE_ALG
 
-#include "gloableInclude.h"
+#include "globalInclude.h"
 
-void Alg_SVM(vector<string>& trainFiles, vector<string>& testFiles, vector<int> labels);
-void Alg_LDA(vector<string>& file);
-void Alg_Sparse(vector<string>& file);
-void Alg_GMM(vector<string>& file);
-void Alg_MeanShift(vector<string>& file);
+
+void train(vector<string>& file);
+void predict(vector<string>& file);
+
+void laterProcess(Mat& feature, string writer, bool train);
+void method_pca(Mat& orginalMat, Mat& pcaMat);
+void resultProcess(bool* abandon, int n, string writer, string reader);
+void computeAUC(double* score, int n, string reader);
 
 #endif
 

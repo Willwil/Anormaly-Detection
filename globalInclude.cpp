@@ -1,49 +1,71 @@
 #include "globalInclude.h"
+#include "errno.h"
 
-int frameWidth = 0;
-int frameHeight = 0;
+int frameWidth, frameHeight;
+int GridRows = 6, GridCols = 6;
 
-
-bool isVideoFormat(string s)
+void programPause()
 {
-    //printf("s: %s\n", s.c_str());
-    string subs;
-    int findPos = s.find_last_of('.');
-    if(findPos == string::npos)
-        return false;
-    subs = s.substr(findPos+1);
-    //printf("subs: %s\n", subs.c_str());
-    if(strcmp(subs.c_str(), "mpg") == 0)
-        return true;
-    if(strcmp(subs.c_str(), "avi") == 0)
-        return true;
-    return false;
+	printf("press enter key to continue\n");
+	while(1)
+	{
+		char c = getchar();
+		if(c != '\n')
+			sleep(120);
+		else
+			break;
+	}
 }
 
-
-bool isImageFormat(string s)
+void printUsedTime(time_t startTime)
 {
-    //printf("s: %s\n", s.c_str());
-    string subs;
-    int findPos = s.find_last_of('.');
-    if(findPos == string::npos)
-        return false;
-    subs = s.substr(findPos);
-    //printf("subs: %s\n", subs.c_str());
-    if(strcmp(subs.c_str(), ".tif") == 0)
-        return true;
-    if(strcmp(subs.c_str(), ".TIF") == 0)
-        return true;
-    return false;
+	time_t endTime = time(0);
+	int totalUsed = endTime - startTime;
+	printf("%d\n", totalUsed);
 }
 
-bool directoryAutoSet(string s)
+int countWords(const char* filename)
 {
-    struct stat st;
-    stat(s.c_str(), &st);
-    if(S_ISDIR(st.st_mode))
-    {
-        return true;
-    }
-    return false;
+	char cmdline[500];
+	sprintf(cmdline, "cat %s | wc -w", filename);
+	printf("cmdline: %s\n", cmdline);
+	FILE* pipe = popen(cmdline, "r");
+	if(!pipe)
+	{
+		perror("pipe is null!\n");
+		printf("%s\n", strerror(errno));
+		exit(1);
+	}
+	char buffer[100];
+	fgets(buffer, sizeof(buffer), pipe);
+	if(pclose(pipe) == -1)
+	{
+		perror("close pipe failed!\n");
+		exit(1);
+	}
+	printf("buffer: %s\n", buffer);
+	int n = atoi(buffer);
+	return n;
+}
+
+int countLines(const char* filename)
+{
+	char cmdline[500];
+	sprintf(cmdline, "cat %s | wc -l", filename);
+	FILE* pipe = popen(cmdline, "r");
+	if(!pipe)
+	{
+		perror("pipe is null!\n");
+		exit(1);
+	}
+	char buffer[100];
+	fgets(buffer, sizeof(buffer), pipe);
+	if(pclose(pipe) == -1)
+	{
+		perror("close pipe failed!\n");
+		printf("%s\n", strerror(errno));
+		exit(1);
+	}
+	int n = atoi(buffer);
+	return n;
 }

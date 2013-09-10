@@ -1,0 +1,513 @@
+#include "FeatureExtractor.h"
+#include "FileProcess.h"
+#include "MatrixDataIo.h"
+#include "Kmeans.h"
+
+
+FeatureExtractor::FeatureExtractor(vector<string> files, string writer, ExtractFunType method)
+{
+	this->files = files;
+	this->writer = writer;
+	this->method = method;
+	//doExtrator();
+}
+
+void FeatureExtractor::doExtrator()
+{
+	if(!feature.empty())
+        feature.release();
+   	
+    if(fileExist(writer.c_str()))
+    {
+    	printf("tag\n");
+    	string command = "rm ";
+    	command += writer;
+        //printf("%s\n", command.c_str());
+        programPause();
+    	system(command.c_str());
+    }
+   
+    
+	directory = directoryAutoSet(files[0]);
+	fileNumber = files.size();
+	featureSize = GridRows * GridCols;
+	restartTime = 60;
+	
+	time_t startTime = time(0);
+	int readNumber = 0;
+
+    //get the scale factor
+    //setScales(scales, GridRows, GridCols);
+
+
+	for(int i = 0; i < fileNumber; i++)
+	{
+		imgStrs.clear();
+		if(!initialVideo(files[i]))
+		{
+		    printf("!!!!!!!!!!!\n");
+		    continue;
+		}
+		//int countss = socialForceFeature();
+        int countss = myNewFeature();
+        
+		if(vc.isOpened())
+            vc.release();
+        //Mat tet = feature.rowRange(feature.rows-countss, feature.rows);
+        //printf("countss: %d, rows: %d\n", countss, tet.rows);
+        //writeFeatureToFile(tet, writer);
+        readNumber += countss;
+	}
+    MatrixDataIo mio(writer.c_str(), true, feature);
+	if(feature.empty())
+    {
+        printf("social force feature extraction process may have some errors!\n");
+        exit(1);
+    }
+	printf("readNumber: %d, rows: %d, cols: %d\n", readNumber, feature.rows, feature.cols);
+	printUsedTime(startTime);
+    programPause();
+}
+
+void FeatureExtractor::setScales(int scales[], int n, int m)
+{
+    Mat frame, current, previous, velocity;
+    Mat prevPts, curPts;
+    Mat status, err;
+
+    Mat average = Mat::zeros(1, m*n, CV_32FC2);
+    Mat nonezeros = Mat::zeros(1, m*n, CV_8UC2);
+    int frames = 20;
+    
+
+    imgStrs.clear();
+    if(!initialVideo(files[0]))
+    {
+        printf("!!!!!!!!!!!\n");
+        return;
+    }
+    int countss = 0;
+    while(countss < frames)
+    {
+        if(!getFrame(frame, countss))
+            break;
+        countss++;
+        printf("sL: %d\n", countss);
+        if(frame.channels() > 1)
+            cvtColor(frame, current, CV_BGR2GRAY);
+        else
+            current = frame.clone();
+              
+        if(countss == 1)
+        {
+            previous = current.clone();
+            continue;
+        }
+        //visualTrajectory(previous, prevPts);
+        setGrids(prevPts, n, m);
+        calcOpticalFlowPyrLK(previous, current, prevPts, curPts, status, err);
+        velocity = curPts - prevPts;
+        velocity = abs(velocity);
+        printf("%d %d\n", velocity.rows, velocity.cols);
+        cout << velocity << endl;
+        nonezeros = nonezeros + (velocity > 0.1)/255;
+        cout << nonezeros << endl;
+        programPause();
+        average = average + velocity;
+    }
+    if(vc.isOpened())
+        vc.release();
+
+    //no-zero average
+    Mat temp;
+    
+    nonezeros.convertTo(temp, average.type(), 1, 0);
+    cout << temp << endl;
+    average = average/temp;
+    cout << average << endl;
+    programPause();
+    memcpy(scales, average.data, sizeof(float)*m*n);
+}
+
+
+/*void initialByConv(Mat current)
+{
+    Mat out;
+    Mat kernel;
+    float k[3] = {1, 1, 1};
+     //time conve
+    filter2D(out, out, CV_8U, kernel);
+    //first direction spatio convelotion
+    sepFilter2D(current, out, CV_8U, kernel);
+    namedWindow("conv");
+    imshow("conv", out);
+}*/
+
+
+int FeatureExtractor::socialForceFeature()
+{
+	printf("use social force for feature ...\n"); 
+
+    Mat frame;
+    Mat current;
+    Mat previous;
+    Mat temp;
+    Mat pV;     //previous v
+    Mat cV;     //current v
+    Mat aV;   //average velocity
+    Mat f;
+    float tao = 1.0/2;
+    Mat prevPts;
+    Mat curPts;
+    Mat status;
+    Mat err;
+	
+    prevPts.create(1, featureSize, CV_32FC2);
+    curPts = Mat::zeros(1, featureSize, CV_32FC2);
+    cV.create(1, featureSize, CV_32FC2);
+    aV.create(1, featureSize, CV_32FC2);
+
+
+    int countss = 0;
+    while(1)
+    {
+        if(!getFrame(frame, countss))
+            break;
+        countss ++;
+        printf("* ");
+        current = frame.clone();
+        if(current.channels() > 1)
+        {
+            cvtColor(current, current, CV_BGR2GRAY);
+            printf("convert\n");
+        }  
+		if(countss % restartTime == 1)
+			setGrids(prevPts, GridRows, GridCols);	
+        if(countss == 1)
+        {
+            previous = current.clone();
+            continue;
+        }
+		//visualTrajectory(previous, prevPts);
+        calcOpticalFlowPyrLK(previous, current, prevPts, curPts, status, err);
+        current.copyTo(previous);
+        cV = curPts - prevPts;
+        getAverageMat(cV, prevPts, aV);
+        if(countss == 2)
+            f = tao*(aV - cV);
+        else
+            f = tao*(aV - cV) + (pV - cV);
+        feature.push_back(f.reshape(1, 1));
+        cV.copyTo(pV);
+        curPts.copyTo(prevPts);
+    }
+    feature.push_back(f.reshape(1, 1));
+    return countss;
+}
+
+
+
+int FeatureExtractor::myNewFeature()
+{
+    Mat persM;
+    Mat basePoint, imagePoint;
+
+   // persM = getPerspectiveTransform(basePoint, imagePoint);
+
+    Mat frame;
+    Mat current;
+    Mat previous;
+    Mat temp;
+    Mat pV;     //previous v
+    Mat cV;     //current v
+    Mat aV;   //average velocity
+    Mat f;
+    float tao = 1;
+    Mat prevPts;
+    Mat curPts;
+    Mat status;
+    Mat err;
+	
+    prevPts = Mat::zeros(1, featureSize, CV_32FC2) - 1;
+    curPts = Mat::zeros(1, featureSize, CV_32FC2);
+    cV.create(1, featureSize, CV_32FC2);
+    aV.create(1, featureSize, CV_32FC2);
+
+    int countss = 0;
+    while(1)
+    {
+        if(!getFrame(frame, countss))
+            break;
+        countss ++;
+        printf("* ");
+        current = frame.clone();
+       
+
+        if(current.channels() > 1)
+            cvtColor(current, current, CV_BGR2GRAY);
+        //perspectiveTransform(current, current, persM);
+        //namedWindow("1");
+        //namedWindow("2");
+        //imshow("1", frame);
+        //imshow("2", current);
+        if(countss % restartTime == 2)
+            initialParticle(previous, current, prevPts);
+        if(countss == 1)
+        {
+            previous = current.clone();
+            continue;
+        }
+        //visualTrajectory(previous, prevPts);
+        calcOpticalFlowPyrLK(previous, current, prevPts, curPts, status, err);
+        current.copyTo(previous);
+        cV = curPts - prevPts;
+        cV = abs(cV);
+        getAverageMat(cV, curPts, aV);
+        // if(countss == 2)
+        //     f = tao*(aV - cV);
+        // else
+        // {
+        //     f = tao*(aV - cV) + (pV - cV);
+        //     //visualSorcialForce(previous, prevPts, f);
+        // }    
+        f = tao * cV + (1 - tao) * cV/aV;
+        feature.push_back(f.reshape(1, 1));
+        curPts.copyTo(prevPts);
+        cV.copyTo(pV);
+    }
+    //the force of last frame is same with last-1
+    feature.push_back(f.reshape(1, 1));
+    return countss;
+}
+
+
+void FeatureExtractor::initialParticle(const Mat& frame, const Mat& lastFrame, Mat& pts)
+{
+    int width = frame.cols;
+    int height =  frame.rows;
+    // printf("%d, %d\n", width, height);
+    // printf("%d, %d\n", frame.total(), frame.channels());
+    Mat out;
+    out.create(height, width, frame.type());
+    absdiff(frame, lastFrame, out);
+    threshold(out, out, 5, 255, THRESH_BINARY);
+    Mat sum;
+
+    integral(out, sum, CV_32S);
+    
+    bool** flag = new bool*[height];
+    for (int i = 0; i < height; ++i)
+    {
+        flag[i] = new bool[width];
+        for (int j = 0; j < width; ++j)
+            flag[i][j] = false;
+    }
+    vector<pair<int, int> > candidates;
+    candidates.reserve(10*GridCols*GridRows);
+    int rx = 16, ry = 8;
+    for (int i = 0; i < height; ++i)
+    {
+        for (int j = 0; j < width; ++j)
+        {
+            if(flag[i][j])
+                continue;
+            //compute density
+            int startx = i-rx/2 > 0? i-rx/2: 0;
+            int endx = i+rx/2 < height? i+rx/2+1: height;
+            int starty = j-ry/2 > 0? j-ry/2: 0;
+            int endy = j+ry/2 < width? j+ry/2+1: width;
+            int overP = (endx-startx) * (endy-starty);
+
+            int d1 = areaFromIntegral(sum, startx, starty, endx, endy);
+            int px = (endx + startx)/2;
+            int py = (endy + starty)/2;
+            int difx = areaFromIntegral(sum, startx, starty, px, endy) - areaFromIntegral(sum, px, starty, endx, endy);
+            int dify = areaFromIntegral(sum, startx, starty, endx, py) - areaFromIntegral(sum, startx, py, endx, endy);
+            //printf("-- %d, %d, %d\n", d1, difx, dify);
+            if(d1 >= overP/2 && abs(difx) < overP/4 && abs(dify) < overP/4)
+            {
+                //printf("tag\n");
+                candidates.push_back(pair<int, int>(i, j));
+                for(int t1 = i; t1 < endx; t1++)
+                    for(int t2 = starty; t2 < endy; t2++)
+                    {
+                        //printf("<%d, %d>\n", t1, t2);
+                        flag[t1][t2] = true;
+                    }    
+                j = endy-1;
+            }     
+        }
+    }
+    for (int i = 0; i < height; ++i)
+        delete[] flag[i];
+    delete[] flag;
+    int s = candidates.size();
+    //printf("%d, %d, %d\n", s, height, width);
+
+    Mat points;
+    points.create(s, 2, CV_32FC1);
+    for (int i = 0; i < s; ++i)
+    {
+        points.at<float>(i, 0) = candidates[i].first;
+        points.at<float>(i, 1) = candidates[i].second;
+    }
+    int classes = GridRows*GridCols;
+    Kmeans km(points, classes);
+    
+    for (int i = 0; i < classes; ++i)
+    {
+        pts.at<Vec2f>(0, i)[0] = km.centers.at<float>(i, 1);
+        pts.at<Vec2f>(0, i)[1] = km.centers.at<float>(i, 0);
+    }   
+}
+
+//put the particul in the image uniformly
+void FeatureExtractor::setGrids(Mat& pts, int n, int m)
+{
+    if(pts.empty())
+    	pts.create(1, featureSize, CV_32FC2);
+    if(pts.channels() != 2)
+        return;
+    int nl = pts.rows;
+    int nc = pts.cols;
+    int celx = frameWidth/m;
+    int cely = frameHeight/n;
+    float* data = pts.ptr<float>(0);
+    for(int j = 0; j < nc; j ++)
+    {
+    	data[2*j] = celx * (j % m + 0.5); 
+	    data[2*j + 1] = cely * (j / m + 0.5);
+    }
+   // printf("set grids\n");
+    //cout << pts << endl;
+}
+
+
+
+//get the particue average in window
+void FeatureExtractor::getAverageMat(const Mat& cur, const Mat& pts, Mat& avr)
+{
+    if(cur.empty() || pts.empty())
+        exit(1);
+    if(pts.total() != cur.checkVector(2, CV_32F, true))
+        exit(1);
+    if(cur.cols != pts.cols)
+    	 exit(1);
+    	 
+    int cols = cur.cols;
+    if(avr.empty())
+        avr.create(1, cur.cols, cur.type());
+
+    int tempNumber;
+    float minv = 0.1;
+    float t = 30;
+    // float ebsuleng1 = 18*18;
+    // float ebsuleng2 = 40*40;
+    
+    const float* in_data = cur.ptr<float>(0);
+    const float* p_data = pts.ptr<float>(0);
+    float* out_data = avr.ptr<float>(0);
+    
+    float skipArray[2*cols];
+    for(int j = 0;  j < 2*cols; j++)
+    {
+        skipArray[j] = false;
+        if(in_data[j] < minv)
+            skipArray[j] = true;
+    }
+
+    for(int j = 0;  j < cols; j++)
+    {
+        if(skipArray[2*j] && skipArray[2*j+1])
+        {
+            out_data[2*j] = in_data[2*j];
+            out_data[2*j+1] = in_data[2*j+1];
+            continue;
+        }
+
+        out_data[2*j] = 0;
+        out_data[2*j+1] = 0;
+        int neighbors = 0;
+        for(int k = 0;  k < cols; k++)
+        {
+        	if(j == k ||(skipArray[2*k] && skipArray[2*k+1]))
+        		continue;
+
+            double s1 = (p_data[2*j] - p_data[2*k]);
+            if(s1 > in_data[2*j] * t)
+                continue;
+            double s2 = (p_data[2*j+1] - p_data[2*k+1]);
+            if(s2 > in_data[2*j+1] * t)
+                continue;
+
+   //          double s1 = (p_data[2*j] - p_data[2*k]) * (p_data[2*j] - p_data[2*k]);
+   //          if(s1 > ebsuleng1)
+   //              continue;
+   //          double s2 = (p_data[2*j+1] - p_data[2*k+1]) * (p_data[2*j+1] - p_data[2*k+1]);
+			// if(s2 > ebsuleng2)
+   //              continue;
+	        out_data[2*j] += in_data[2*k];
+	        out_data[2*j+1] += in_data[2*k+1];
+	        neighbors++;
+            //printf("%f %f %f %f\n", out_data[2*j], out_data[2*j+1], in_data[2*k], in_data[2*k+1]);
+        }
+        if(neighbors > 0)
+        {
+			out_data[2*j] /= neighbors;
+			out_data[2*j+1] /= neighbors;
+            //printf("%d %f %f\n", neighbors, out_data[2*j], out_data[2*j+1]);
+        }
+        else
+        {
+            out_data[2*j] = in_data[2*j];
+            out_data[2*j+1] = in_data[2*j+1];
+        }
+    }
+}
+
+
+//video struction initial
+bool FeatureExtractor::initialVideo(string folder)
+{
+    //printf("folder: %s\n", folder.c_str());
+    if(directory)
+    {
+        getImageStrings(folder, imgStrs);
+        if(imgStrs.size() == 0)
+            return false;
+    }
+    else
+    {
+        vc.open(folder);
+        if(!vc.isOpened())
+        {
+            printf("error occures: video file can't open!\n");
+            return false;
+        }
+    }
+    return true;
+}
+
+
+//get a image
+bool FeatureExtractor::getFrame(Mat& frame, int counts)
+{
+    if(directory)
+    {
+        if(counts >= imgStrs.size())
+            return false;
+        frame = imread(imgStrs[counts]);
+        if(frame.empty())
+        {
+            printf("??????????????????\n");
+            return false;
+        }
+    }
+    else
+    {
+        if(!vc.read(frame))
+            return false;
+    }
+    return true;
+}
+

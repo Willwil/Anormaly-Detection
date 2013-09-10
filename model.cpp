@@ -30,18 +30,18 @@ void LDAEstimation()
     sprintf(cmd, "R CMD BATCH lda_R");
     shellResultParse(system(cmd));
     
-    double* p  =  readLdaResult("lda_result");
+    /*double* p  =  readLdaResult("lda_result");
     int nl  =  feature.rows;
 	double probality  =  1;
 	for(int i  =  0; i < nl; i ++)
 	{
-        probality * =  p[indices[i]];
+        probality *=  p[indices[i]];
 	}
 	double threshod  =  0.2;
 	if(probality > threshod)
 		printf("normal\n");
 	else
-		printf("abnormal\n");
+        printf("abnormal\n");*/
     
 }
 
@@ -79,12 +79,12 @@ void showResult(string outputFile, int start, int end)
     int accuracy  =  0;
     int TP, TN, FP, FN;
     TP  =  0; TN  =  0; FP  =  0; FN  =  0;
-    while(fscanf(file, "%d", &predictLabel) ! =  EOF)
+    while(fscanf(file, "%d", &predictLabel) !=  EOF)
     {
         count ++;
-        if(predictLabel  =  =  1)
+        if(predictLabel  ==  1)
         {
-            if(count > =  start && count < =  end)
+            if(count >=  start && count <=  end)
             {
                 accuracy ++;
                 TP ++;
@@ -92,9 +92,9 @@ void showResult(string outputFile, int start, int end)
             else
                 FP ++;
         }
-        if(predictLabel  =  =  -1)
+        if(predictLabel  ==  -1)
         {
-            if(count > =  start && count < =  end)
+            if(count >=  start && count <=  end)
                 FN ++;
             else
             {
@@ -111,13 +111,13 @@ void showResult(string outputFile, int start, int end)
 
 void shellResultParse(int status)
 {
-	if(status  =  =  -1)
+    if(status  ==  -1)
     {
         printf("system error!\n");
     }
     else
     {
-         if(WIFEXITED(status) && WEXITSTATUS(status)  =  =  0)
+         if(WIFEXITED(status) && WEXITSTATUS(status)  ==  0)
          {
                printf("run shell script successfully.\n");
          }

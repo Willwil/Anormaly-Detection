@@ -1,0 +1,11 @@
+
+require("lda");
+documents = read.documents("feature.dat")
+vocab = read.vocab("vocab.dat")
+
+eta = 0.1
+alpha = 0.1
+K = 10;  #topic numbers
+iterations = 25;
+lda_model = lda.collapsed.gibbs.sampler(documents, K, vocab, iterations, alpha, eta,compute.log.likelihood=TRUE)
+predictive.distribution(lda_model$document_sums, lda_model[["topics"]])
